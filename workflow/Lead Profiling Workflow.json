@@ -1,0 +1,352 @@
+{
+  "name": "Lead Profiling Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-profile",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "691a355a-0b4d-4ebb-89b7-60f93f6822b4",
+      "name": "Webhook",
+      "webhookId": "d8472437-1f80-4883-a29a-44fc03816106"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI Lead Qualification Assistant for a company's sales team.\n\nYour task is to analyze a website visitor's submitted information and classify the lead into exactly ONE of the following business categories:\n\n1. Sales Bots\n2. Organizational Development\n\nUse ALL of the information provided below before making your decision.\n\n--------------------------------------------------\nVISITOR DETAILS\n--------------------------------------------------\n\nName:\n{{ $json.body.name }}\n\nEmail:\n{{ $json.body.email }}\n\nCompany:\n{{ $json.body.company }}\n\nVisitor Query:\n{{ $json.body.query }}\n\nWebsite Visit History:\n{{ JSON.stringify($json.body.visit_history) }}\n\n--------------------------------------------------\nCLASSIFICATION GUIDELINES\n--------------------------------------------------\n\nClassify as \"Sales Bots\" if the visitor shows interest in topics such as:\n- AI automation\n- Sales automation\n- Chatbots\n- Lead generation\n- CRM\n- Customer engagement\n- Outreach automation\n- Conversational AI\n- Sales productivity\n- Pricing for automation products\n- Visits to pages like:\n  - /sales-bots\n  - /pricing\n  - /demo\n  - /contact\n\nClassify as \"Organizational Development\" if the visitor shows interest in topics such as:\n- Leadership development\n- Employee training\n- HR transformation\n- Organizational culture\n- Performance management\n- Learning & Development\n- Team effectiveness\n- Change management\n- Workforce development\n- Executive coaching\n\n--------------------------------------------------\nOUTPUT REQUIREMENTS\n--------------------------------------------------\n\nReturn ONLY valid JSON.\n\nDo NOT include:\n- Markdown\n- Code fences\n- Bullet points\n- Additional explanations\n- Any text before or after the JSON\n\nReturn exactly this format:\n\n{\n  \"category\": \"Sales Bots or Organizational Development\",\n  \"reason\": \"A concise explanation (1-2 sentences) explaining why this lead belongs to the selected category based on both the visitor's query and browsing history.\"\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d16331c3-fbc1-4f37-ace9-d57ee16d4483",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        144,
+        208
+      ],
+      "id": "c6230d3c-e1ad-48f8-b899-b84a42b6ef35",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "5LFtWVwCAP4spcBk",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse the JSON returned by the LLM\nconst ai = JSON.parse($json.text);\n\n// Get original webhook data\nconst webhook = $('Webhook').first().json.body;\n\nreturn {\n  json: {\n    timestamp: new Date().toISOString(),\n    name: webhook.name,\n    email: webhook.email,\n    company: webhook.company,\n    query: webhook.query,\n    visit_history:webhook.visit_history\n  .map(item =>\n    `${item.page.replace(/_/g, \" \")} (${new Date(item.timestamp).toLocaleTimeString()})`\n  )\n  .join(\" → \"),\n    category: ai.category,\n    reason: ai.reason\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "5c9ca714-ae59-4d12-b1eb-f6786c6fb363",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1a4H_iQtSng8-GHBnfKtWPCQM_p3dj0eagKYd4Qh8F8E",
+          "mode": "list",
+          "cachedResultName": "Lead Profiling",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1a4H_iQtSng8-GHBnfKtWPCQM_p3dj0eagKYd4Qh8F8E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1a4H_iQtSng8-GHBnfKtWPCQM_p3dj0eagKYd4Qh8F8E/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Company": "={{ $json.company }}",
+            "Query": "={{ $json.query }}",
+            "Visit History": "={{ $json.visit_history }}",
+            "Category": "={{ $json.category }}",
+            "Reason": "={{ $json.reason }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Query",
+              "displayName": "Query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Visit History",
+              "displayName": "Visit History",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        768,
+        0
+      ],
+      "id": "8b61031b-9d25-4c96-ba42-7e355bfe0c97",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "rXJ4X6o1hxwe6bLr",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "debasishghosh20032025@gmail.com",
+        "subject": "=🚀 New AI Profiled Lead - {{ $json.Name }}",
+        "message": "=<h2>🚀 New AI Profiled Lead</h2>  <table border=\"1\" cellpadding=\"8\" cellspacing=\"0\"> <tr><td><b>Name</b></td><td>{{ $json.Name }}</td></tr> <tr><td><b>Email</b></td><td>{{$json.Email}}</td></tr> <tr><td><b>Company</b></td><td>{{$json.Company}}</td></tr> <tr><td><b>Category</b></td><td>{{$json.Category}}</td></tr> <tr><td><b>Reason</b></td><td>{{$json.Reason}}</td></tr> <tr><td><b>Query</b></td><td>{{$json.Query}}</td></tr> <tr><td><b>Visit History</b></td>{{ $json[\"Visit History\"] }}<td></td></tr> </table>  <br>  This lead has been automatically classified by the AI Lead Profiling Workflow.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "7460c8cd-a386-4573-830e-1820a2d05192",
+      "name": "Send a message",
+      "webhookId": "1e3f5856-3c40-442b-8c73-a117144f2091",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "anOeUcC8CbIK4fVH",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "connection": "keep-alive",
+            "content-length": "463",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
+            "content-type": "application/json",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://10.44.37.70:5173",
+            "sec-fetch-site": "cross-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://10.44.37.70:5173/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "name": "Debasish Ghosh - SNU",
+            "email": "debasishghosh20032025@gmail.com",
+            "company": "xyz",
+            "query": "hqufQHEEEDALV MVSKPEA;EW,;Q,;QFE",
+            "visit_history": [
+              {
+                "page": "homepage",
+                "timestamp": "2026-07-25T15:01:53.251Z"
+              },
+              {
+                "page": "contact",
+                "timestamp": "2026-07-25T15:02:22.716Z"
+              },
+              {
+                "page": "sales_bots",
+                "timestamp": "2026-07-25T15:16:03.221Z"
+              },
+              {
+                "page": "organizational_development",
+                "timestamp": "2026-07-25T15:16:04.385Z"
+              },
+              {
+                "page": "pricing",
+                "timestamp": "2026-07-25T15:16:05.436Z"
+              }
+            ]
+          },
+          "webhookUrl": "http://localhost:5678/webhook-test/lead-profile",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "91e96911-13b1-4331-a7b6-d6f550a4b0a6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "139df8c5e98b4068a8aa4a2c0958a8f582370dca95860f0b6b01d0f86d78c69f"
+  },
+  "nodeGroups": [],
+  "id": "zP9tsXjSGKVl9xD9",
+  "tags": []
+}
